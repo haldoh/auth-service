@@ -1,0 +1,14 @@
+{
+  "logger": {
+    "logLabel": "main",
+    "logLevel": "debug"
+  },
+  "server": {
+    "service": "auth-service",
+    "port": 5001,
+    "logger": {
+      "logLabel": "server",
+      "logLevel": "debug"
+    }
+  }
+}
