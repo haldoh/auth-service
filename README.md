@@ -1,10 +1,12 @@
 auth-service
 =
 
-A comprehensive Authentication/Authorisation service for cloud applications.
+A comprehensive authentication/authorisation service for cloud applications.
 
 Based on [node-oidc-provider](https://github.com/panva/node-oidc-provider)
 
-License
+---
+
+LICENSE
 -
-The MIT license © Aldo Ambrosioni
+The [MIT license](LICENSE.md) © Aldo Ambrosioni
