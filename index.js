@@ -4,6 +4,7 @@ const path = require('path');
 const url = require('url');
 
 const set = require('lodash/set');
+const dotenv = require('dotenv');
 const express = require('express');
 const helmet = require('helmet');
 
@@ -11,13 +12,18 @@ const { Provider } = require('oidc-provider');
 
 const Account = require('./models/account');
 const configuration = require('./config/configuration');
-const routes = require('./routes/oidc');
+const modelAdapters = require('./models/adapters');
+const routes = require('./routes');
+
+dotenv.config();
 
 const { PORT = 3000, ISSUER = `http://localhost:${PORT}` } = process.env;
 configuration.findAccount = Account.findAccount;
 
 const app = express();
 app.use(helmet());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
@@ -25,7 +31,7 @@ app.set('view engine', 'ejs');
 let server;
 (async () => {
   let adapter;
-  if (process.env.MONGODB_URI) {
+  if (process.env.MONGODB_OIDC_URI) {
     adapter = require('./adapters/mongodb'); // eslint-disable-line global-require
     await adapter.connect();
   }
@@ -59,6 +65,10 @@ let server;
         });
       }
     });
+  }
+
+  if (process.env.MONGODB_AUTH_URI) {
+    modelAdapters();
   }
 
   routes(app, provider);
