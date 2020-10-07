@@ -1,13 +1,73 @@
-const config = require('config');
+/* eslint-disable no-console */
 
-const logger = require('./util/logger').createLogger(config.get('logger'));
-const server = require('./server');
+const path = require('path');
+const url = require('url');
 
-try {
-  logger.info('Starting server');
-  server.start(config.get('server'));
-} catch (e) {
-  logger.error(`Error starting server: ${e}`);
-  logger.error(e.stack);
-  process.exit(1);
-}
+const set = require('lodash/set');
+const express = require('express');
+const helmet = require('helmet');
+
+const { Provider } = require('oidc-provider');
+
+const Account = require('./models/account');
+const configuration = require('./config/configuration');
+const routes = require('./routes/oidc');
+
+const { PORT = 3000, ISSUER = `http://localhost:${PORT}` } = process.env;
+configuration.findAccount = Account.findAccount;
+
+const app = express();
+app.use(helmet());
+
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
+
+let server;
+(async () => {
+  let adapter;
+  if (process.env.MONGODB_URI) {
+    adapter = require('./adapters/mongodb'); // eslint-disable-line global-require
+    await adapter.connect();
+  }
+
+  const prod = process.env.NODE_ENV === 'production';
+
+  if (prod) {
+    set(configuration, 'cookies.short.secure', true);
+    set(configuration, 'cookies.long.secure', true);
+  }
+
+  const provider = new Provider(ISSUER, { adapter, ...configuration });
+
+  if (prod) {
+    app.enable('trust proxy');
+    provider.proxy = true;
+
+    app.use((req, res, next) => {
+      if (req.secure) {
+        next();
+      } else if (req.method === 'GET' || req.method === 'HEAD') {
+        res.redirect(url.format({
+          protocol: 'https',
+          host: req.get('host'),
+          pathname: req.originalUrl,
+        }));
+      } else {
+        res.status(400).json({
+          error: 'invalid_request',
+          error_description: 'do yourself a favor and only use https',
+        });
+      }
+    });
+  }
+
+  routes(app, provider);
+  app.use(provider.callback);
+  server = app.listen(PORT, () => {
+    console.log(`application is listening on port ${PORT}, check its /.well-known/openid-configuration`);
+  });
+})().catch((err) => {
+  if (server && server.listening) server.close();
+  console.error(err);
+  process.exitCode = 1;
+});
