@@ -10,10 +10,10 @@ const helmet = require('helmet');
 
 const { Provider } = require('oidc-provider');
 
-const Account = require('./models/account');
+const Account = require('./src/models/account');
 const configuration = require('./config/configuration');
-const modelAdapters = require('./models/adapters');
-const routes = require('./routes');
+const modelAdapters = require('./src/models/adapters');
+const routes = require('./src/routes');
 
 dotenv.config();
 
@@ -32,7 +32,7 @@ let server;
 (async () => {
   let adapter;
   if (process.env.MONGODB_OIDC_URI) {
-    adapter = require('./adapters/mongodb'); // eslint-disable-line global-require
+    adapter = require('./src/adapters/mongodb'); // eslint-disable-line global-require
     await adapter.connect();
   }
 
